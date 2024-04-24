@@ -4,8 +4,15 @@ import numpy as np
 import pandas as pd
 from nsd_access import NSDAccess
 import scipy.io
+#Added random + pickle to made tr/te tests and save indices
+import random
+import pickle
 
 def main():
+    TEST_SET_SIZE = 10000
+    tr_file = open('tr_idx', 'ab')
+    te_file = open('te_idx', 'ab')
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--subject",
@@ -77,24 +84,38 @@ def main():
         # ALLDATA
         betas_tr = []
         betas_te = []
-
-        for idx,stim in enumerate(stims_all):
-            if stim in sharedix:
-                betas_te.append(betas_roi[idx,:])
+        #VALIDATION CHANGE HERE: change how betas_tr and betas_te created
+        shared_indices
+        nonshared_indices = []
+        for idx,stim in enumerate(stims_unique):
+            if stim  in sharedix:
+                shared_indices.append(idx)
             else:
-                betas_tr.append(betas_roi[idx,:])
+                nonshared_indices.append(idx)
+        te_idx = random.sample(nonsharedidx, TEST_SET_SIZE)
+        tr_idx = list(set(nonsharedidx)-set(te_idx)+set(shared_indices))
 
+        for idx in te_idx:
+            betas_te.append(betas_roi_ave[idx,:])
+        for idx in tr_idx:
+            betas_tr.append(betas_roi_ave[idx,:])
         betas_tr = np.stack(betas_tr)
         betas_te = np.stack(betas_te)    
         
         # AVERAGED DATA        
         betas_ave_tr = []
         betas_ave_te = []
-        for idx,stim in enumerate(stims_unique):
-            if stim in sharedix:
-                betas_ave_te.append(betas_roi_ave[idx,:])
-            else:
-                betas_ave_tr.append(betas_roi_ave[idx,:])
+
+        for idx in te_idx:
+            betas_ave_te.append(betas_roi_ave[idx,:])
+        for idx in tr_idx:
+            betas_ave_tr.append(betas_roi_ave[idx,:])
+
+        pickle.dump(tr_idx, tr_file)
+        pickle.dump(te_idx, te_file)
+        tr_file.close()
+        te_file.close()
+
         betas_ave_tr = np.stack(betas_ave_tr)
         betas_ave_te = np.stack(betas_ave_te)    
         

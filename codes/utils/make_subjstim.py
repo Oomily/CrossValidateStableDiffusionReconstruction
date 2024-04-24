@@ -3,8 +3,13 @@ import scipy.io
 from tqdm import tqdm
 import argparse
 import os
+#Added pickle to unpickle stored idx for te/tr
+import pickle
 
 def main():
+    tr_file = open('tr_idx', 'rb')
+    te_file = open('te_idx', 'rb')
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -34,11 +39,15 @@ def main():
     savedir = f'{topdir}/subjfeat/'
     featdir = f'{topdir}/{featname}/'
 
-    nsd_expdesign = scipy.io.loadmat('../../nsd/nsddata/experiments/nsd/nsd_expdesign.mat')
+    # nsd_expdesign = scipy.io.loadmat('../../nsd/nsddata/experiments/nsd/nsd_expdesign.mat')
 
     # Note that most of them are 1-base index!
     # This is why I subtract 1
-    sharedix = nsd_expdesign['sharedix'] -1 
+    # sharedix = nsd_expdesign['sharedix'] -1 
+
+    #ADDED HERE
+    tr_idx = pickle.load(tr_file)
+    te_idx = pickle.load(te_file)
 
     if use_stim == 'ave':
         stims = np.load(f'../../mrifeat/{subject}/{subject}_stims_ave.npy')
@@ -46,13 +55,13 @@ def main():
         stims = np.load(f'../../mrifeat/{subject}/{subject}_stims.npy')
     
     feats = []
-    tr_idx = np.zeros(len(stims))
-
+    tr_idx_flag = np.zeros(len(stims))
+    #CHANGED TO USE UNPICKLED LISTS
     for idx, s in tqdm(enumerate(stims)): 
-        if s in sharedix:
-            tr_idx[idx] = 0
+        if s in te_idx:
+            tr_idx_flag[idx] = 0
         else:
-            tr_idx[idx] = 1    
+            tr_idx_flag[idx] = 1    
         feat = np.load(f'{featdir}/{s:06}.npy')
         feats.append(feat)
 
@@ -60,9 +69,9 @@ def main():
 
     os.makedirs(savedir, exist_ok=True)
 
-    feats_tr = feats[tr_idx==1,:]
-    feats_te = feats[tr_idx==0,:]
-    np.save(f'../../mrifeat/{subject}/{subject}_stims_tridx.npy',tr_idx)
+    feats_tr = feats[tr_idx_flag==1,:]
+    feats_te = feats[tr_idx_flag==0,:]
+    np.save(f'../../mrifeat/{subject}/{subject}_stims_tridx.npy',tr_idx_flag)
 
     np.save(f'{savedir}/{subject}_{use_stim}_{featname}_tr.npy',feats_tr)
     np.save(f'{savedir}/{subject}_{use_stim}_{featname}_te.npy',feats_te)
